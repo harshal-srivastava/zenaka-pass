@@ -26,6 +26,9 @@ public class GameAudioManager : MonoBehaviour
     [SerializeField]
     private AudioClip cardMatchFailSoundClip;
 
+    [SerializeField]
+    private AudioClip gameWonSoundClip;
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -53,8 +56,17 @@ public class GameAudioManager : MonoBehaviour
         SetAndPlayAudioSource(cardMatchFailSoundClip);
     }
 
+    public void PlayGameWonSound()
+    {
+        SetAndPlayAudioSource(gameWonSoundClip);
+    }
+
     void SetAndPlayAudioSource(AudioClip clip)
     {
+        if (audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
         audioSource.clip = clip;
         audioSource.Play();
     }

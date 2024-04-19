@@ -46,6 +46,14 @@ public class GameManager : MonoBehaviour
     public delegate void GameWonEvent();
     public static GameWonEvent GameWonCB;
 
+    public delegate void CardMatchEvent(int combo);
+    public static CardMatchEvent CardMatchCB;
+
+    public delegate void PlayerTurnCompletedEvent();
+    public static PlayerTurnCompletedEvent PlayerTurnCompletedEventCB;
+
+    private int combo = 0;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -233,6 +241,7 @@ public class GameManager : MonoBehaviour
         {
             yield break;
         }
+        PlayerTurnCompletedEventCB?.Invoke();
         GameCard lastCard = clickedCards[clickedCards.Count - 1];
         GameCard secondLastCard = clickedCards[clickedCards.Count - 2];
         if (lastCard == null || secondLastCard == null)
@@ -245,6 +254,8 @@ public class GameManager : MonoBehaviour
             GameAudioManager.Instance.PlayCardMatchSuccessSound();
             ResetCardClickCount();
             clickedCards.RemoveRange(clickedCards.Count - 2, 2);
+            combo += 1;
+            CardMatchCB?.Invoke(combo);
             yield return new WaitForSeconds(0.5f);
             HandleCardsMatchSuccess(new GameCard[] {lastCard, secondLastCard }); 
         }
@@ -253,6 +264,7 @@ public class GameManager : MonoBehaviour
         {
             GameAudioManager.Instance.PlayCardMatchFailSound();
             ResetCardClickCount();
+            combo = 0;
             yield return new WaitForSeconds(0.5f);
             HandleCardMatchFail(new GameCard[] { lastCard, secondLastCard }); 
         }
@@ -271,10 +283,16 @@ public class GameManager : MonoBehaviour
             availableCardsShownToPlayer.Remove(cards[i]);
             cards[i].RemoveCard();
         }
+        CheckForGameOver();
+        
+    }
 
+    void CheckForGameOver()
+    {
         if (availableCardsShownToPlayer.Count == 0)
         {
             //game win
+            GameAudioManager.Instance.PlayGameWonSound();
             GameWonCB?.Invoke();
         }
     }
