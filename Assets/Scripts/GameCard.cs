@@ -31,6 +31,9 @@ public class GameCard : MonoBehaviour
     private bool isTurning = false;
     private bool isCardHidden = true;
 
+    public delegate void GameCardClicked(GameCard card);
+    public static GameCardClicked cardClickedCB;
+
     private void Awake()
     {
         cardButton = this.GetComponent<Button>();
@@ -47,10 +50,11 @@ public class GameCard : MonoBehaviour
             return;
         }
         FlipCard();
+        cardClickedCB?.Invoke(this);
         
     }
 
-    void FlipCard()
+    public void FlipCard()
     {
         isTurning = true;
         //play card flip sound
@@ -113,6 +117,8 @@ public class GameCard : MonoBehaviour
         CardSprite = sprite;
         isCardHidden = false;
         this.transform.localEulerAngles = new Vector3(0, 0, 0);
+        //added this just for debug purposes
+        this.name = "Card" + cardID;
     }
 
     public void ResetCard()
@@ -125,5 +131,24 @@ public class GameCard : MonoBehaviour
     public void HideCard()
     {
         FlipCard();
+    }
+
+    public void RemoveCard()
+    {
+        StartCoroutine(Fade());
+    }
+
+    private IEnumerator Fade()
+    {
+        float rate = 0.01f;
+        float t = 0.0f;
+        while (t < 2.5f)
+        {
+            t += Time.deltaTime * rate;
+            cardImageComponent.color = Color.Lerp(cardImageComponent.color, Color.clear, t);
+
+            yield return null;
+        }
+        DestroyImmediate(this.gameObject);
     }
 }

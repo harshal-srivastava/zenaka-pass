@@ -36,12 +36,18 @@ public class GameManager : MonoBehaviour
 
     public static bool hasGameStarted { get; private set; }
 
+    public List<GameCard> clickedCards;
+
+    private int cardClickCount;
+
     // Start is called before the first frame update
     void Awake()
     {
         SetCardPanelSizeVariables();
         LoadAllCardInformationData();
         hasGameStarted = false;
+        GameCard.cardClickedCB += GameCardClicked;
+        cardClickCount = 0;
     }
 
     private void Start()
@@ -193,6 +199,70 @@ public class GameManager : MonoBehaviour
         foreach (Transform child in cardHolderPanel.transform)
         {
             GameObject.Destroy(child.gameObject);
+        }
+    }
+
+    void GameCardClicked(GameCard card)
+    {
+        clickedCards.Add(card);
+        StartCoroutine(ProcessClickedCardsListForMatch());
+    }
+
+    IEnumerator ProcessClickedCardsListForMatch()
+    {
+        cardClickCount += 1;
+        if (cardClickCount != 2)
+        {
+            yield break;
+        }
+        if (clickedCards.Count < 2)
+        {
+            yield break;
+        }
+        GameCard lastCard = clickedCards[clickedCards.Count - 1];
+        GameCard secondLastCard = clickedCards[clickedCards.Count - 2];
+        if (lastCard == null || secondLastCard == null)
+        {
+            yield break;
+        }
+        //cards match
+        if (lastCard.cardID == secondLastCard.cardID)
+        {
+            GameAudioManager.Instance.PlayCardMatchSuccessSound();
+            ResetCardClickCount();
+            clickedCards.RemoveRange(clickedCards.Count - 2, 2);
+            yield return new WaitForSeconds(0.5f);
+            HandleCardsMatchSuccess(new GameCard[] {lastCard, secondLastCard }); 
+        }
+        //cards mismatch
+        else
+        {
+            GameAudioManager.Instance.PlayCardMatchFailSound();
+            ResetCardClickCount();
+            yield return new WaitForSeconds(0.5f);
+            HandleCardMatchFail(new GameCard[] { lastCard, secondLastCard }); 
+        }
+    }
+
+    void ResetCardClickCount()
+    {
+        cardClickCount = 0;
+    }
+
+    void HandleCardsMatchSuccess(GameCard[] cards)
+    {
+
+        for (int i=0;i<cards.Length;i++)
+        {
+            cards[i].RemoveCard();
+        }
+    }
+
+    void HandleCardMatchFail(GameCard[] cards)
+    {
+        for (int i=0;i<cards.Length;i++)
+        {
+            cards[i].FlipCard();
         }
     }
 
