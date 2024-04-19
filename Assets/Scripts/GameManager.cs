@@ -31,11 +31,17 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private float paddingY;
 
+    [SerializeField]
+    private float gameStartCardShowingTime;
+
+    public static bool hasGameStarted { get; private set; }
+
     // Start is called before the first frame update
     void Awake()
     {
         SetCardPanelSizeVariables();
         LoadAllCardInformationData();
+        hasGameStarted = false;
     }
 
     private void Start()
@@ -63,6 +69,16 @@ public class GameManager : MonoBehaviour
     {
         SetCardGrid();
         SetCardDetails();
+        Invoke("HideAllCards", gameStartCardShowingTime);
+    }
+
+    void HideAllCards()
+    {
+        for (int i=0;i<availableCards.Count;i++)
+        {
+            availableCards[i].HideCard();
+        }
+        hasGameStarted = true;
     }
 
 
@@ -159,9 +175,7 @@ public class GameManager : MonoBehaviour
                 int value = Random.Range(0, availableCards.Count - 1);
                 while (availableCards[value].cardID != -1)
                     value = (value + 1) % availableCards.Count;
-
-                availableCards[value].SetCardID(selectedGameCards[i].cardID);
-                availableCards[value].cardSprite = selectedGameCards[i].cardSprite;
+                availableCards[value].InitializeCard(selectedGameCards[i].cardID, selectedGameCards[i].cardSprite);
             }
         }
     }

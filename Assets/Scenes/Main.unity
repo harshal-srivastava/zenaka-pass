@@ -407,6 +407,7 @@ MonoBehaviour:
   cardPrefab: {fileID: 2570384082829679068, guid: 087304da9748c6e4fb9f493301e96c6b, type: 3}
   paddingX: 0
   paddingY: 0
+  gameStartCardShowingTime: 2
 --- !u!4 &762441828
 Transform:
   m_ObjectHideFlags: 0
