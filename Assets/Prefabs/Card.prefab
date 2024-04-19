@@ -134,3 +134,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e25c6a72c6798824d90c6c2aed47685a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cardID: -1
+  cardSprite: {fileID: 0}
+  defaultSprite: {fileID: 21300000, guid: 46d815cdadc216b48bbc92031277d5b9, type: 3}

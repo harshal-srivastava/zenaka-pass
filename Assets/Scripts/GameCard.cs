@@ -9,9 +9,18 @@ public class GameCard : MonoBehaviour
     private Button cardButton;
     private bool isCardBeingFlipped;
     private Transform cardTransform;
-    public int cardID { get; private set; }
-    public Sprite cardSprite { get; set; }
+    public int cardID { get; set; }
+    public Sprite cardSprite
+    {
+        set
+        {
+            UpdateCardImage(value);
+        }
+    }
     private Image cardImageComponent;
+
+    [SerializeField]
+    private Sprite defaultSprite;
 
     private void Awake()
     {
@@ -19,6 +28,7 @@ public class GameCard : MonoBehaviour
         cardButton.onClick.AddListener(CardClicked);
         cardTransform = this.GetComponent<Transform>();
         cardImageComponent = this.GetComponent<Image>();
+        cardID = -1;
     }
 
     void CardClicked()
@@ -53,5 +63,17 @@ public class GameCard : MonoBehaviour
     public void SetCardID(int id)
     {
         cardID = id;
+    }
+
+    private void UpdateCardImage(Sprite value)
+    {
+        cardImageComponent.sprite = value;
+    }
+
+    public void ResetCard()
+    {
+        cardID = -1;
+        cardSprite = defaultSprite;
+        this.transform.localEulerAngles = new Vector3(0, 0, 0);
     }
 }
