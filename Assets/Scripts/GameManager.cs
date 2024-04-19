@@ -52,6 +52,9 @@ public class GameManager : MonoBehaviour
     public delegate void PlayerTurnCompletedEvent();
     public static PlayerTurnCompletedEvent PlayerTurnCompletedEventCB;
 
+    public delegate void InitializeGameEvent();
+    public static InitializeGameEvent InitializeGameCB;
+
     private int combo = 0;
 
     // Start is called before the first frame update
@@ -68,6 +71,8 @@ public class GameManager : MonoBehaviour
 
     void StartGame()
     {
+        combo = 0;
+        InitializeGameCB?.Invoke();
         SetCards();
     }
 

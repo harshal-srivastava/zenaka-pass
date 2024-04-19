@@ -22,6 +22,7 @@ public class GamePlayScreenController : MonoBehaviour
     {
         GameScoreManager.PlayerScoreUpdatedCB += UpdatePlayerScoreUI;
         GameManager.PlayerTurnCompletedEventCB += UpdatePlayerTurnUI;
+        GameManager.InitializeGameCB += DisplayDefaultScore;
     }
 
     void UpdatePlayerScoreUI()
@@ -34,6 +35,14 @@ public class GamePlayScreenController : MonoBehaviour
     void UpdatePlayerTurnUI()
     {
         numberOfTurnsText.text = GameScoreManager.Instance.PlayerNumberOfTurns.ToString();
+    }
+
+    void DisplayDefaultScore()
+    {
+        scoreText.text = "0";
+        comboText.text = "1";
+        numberOfMatchesText.text = "0";
+        numberOfTurnsText.text = "0";
     }
 
 

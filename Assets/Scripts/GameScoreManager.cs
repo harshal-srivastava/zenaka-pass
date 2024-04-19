@@ -25,6 +25,7 @@ public class GameScoreManager : MonoBehaviour
         }
         GameManager.CardMatchCB += UpdatePlayerScore;
         GameManager.PlayerTurnCompletedEventCB += PlayerTurnCompleted;
+        GameManager.InitializeGameCB += SetScoresToDefault;
     }
 
     public int PlayerScore { get; private set; }
@@ -49,5 +50,13 @@ public class GameScoreManager : MonoBehaviour
     private void PlayerTurnCompleted()
     {
         PlayerNumberOfTurns += 1;
+    }
+
+    private void SetScoresToDefault()
+    {
+        PlayerScore = 0;
+        PlayerScoreCombo = 0;
+        PlayerNumberOfMatches = 0;
+        PlayerNumberOfTurns = 0;
     }
 }
