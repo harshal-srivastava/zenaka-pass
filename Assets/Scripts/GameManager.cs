@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     [SerializeField]
     private GameCardSO[] gameCardScriptableObjectArray;
-    private List<GameCard> availableCards;
+    private List<GameCard> availableCardsShownToPlayer;
 
     [SerializeField]
     private int gridX;
@@ -40,6 +40,12 @@ public class GameManager : MonoBehaviour
 
     private int cardClickCount;
 
+    public static int minGridX = 2;
+    public static int minGridY = 2;
+
+    public delegate void GameWonEvent();
+    public static GameWonEvent GameWonCB;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -47,12 +53,20 @@ public class GameManager : MonoBehaviour
         LoadAllCardInformationData();
         hasGameStarted = false;
         GameCard.cardClickedCB += GameCardClicked;
+        GridSelectionScereen.updateGameGridCB += UpdateGameGrid;
+        GridSelectionScereen.gameStartCB += StartGame;
         cardClickCount = 0;
     }
 
-    private void Start()
+    void StartGame()
     {
         SetCards();
+    }
+
+    void UpdateGameGrid(int x, int y)
+    {
+        gridX = x;
+        gridY = y;
     }
 
     void SetCardPanelSizeVariables()
@@ -80,9 +94,9 @@ public class GameManager : MonoBehaviour
 
     void HideAllCards()
     {
-        for (int i=0;i<availableCards.Count;i++)
+        for (int i=0;i<availableCardsShownToPlayer.Count;i++)
         {
-            availableCards[i].HideCard();
+            availableCardsShownToPlayer[i].HideCard();
         }
         hasGameStarted = true;
     }
@@ -111,7 +125,7 @@ public class GameManager : MonoBehaviour
         //used for resetting X value after filling each row
         float initialX = currX;
 
-        availableCards = new List<GameCard>();
+        availableCardsShownToPlayer = new List<GameCard>();
 
         for (int i=0;i<gridY;i++)
         {
@@ -121,7 +135,7 @@ public class GameManager : MonoBehaviour
                 GameCard card = GameObject.Instantiate(cardPrefab, cardHolderPanel).GetComponent<GameCard>();
                 card.GetComponent<RectTransform>().sizeDelta = new Vector2(cardWidth, cardHeight);
                 card.GetComponent<RectTransform>().anchoredPosition = new Vector2(currX, currY);
-                availableCards.Add(card);
+                availableCardsShownToPlayer.Add(card);
                 currX += incrementX;
             }
             currY -= incrementY;
@@ -144,8 +158,8 @@ public class GameManager : MonoBehaviour
     GameCardSO[] GetRandomGameCards()
     {
         //we only need half the cards as other half will have same value to form pairs
-        GameCardSO[] selectedCards = new GameCardSO[availableCards.Count / 2];
-        for (int i = 0; i < availableCards.Count / 2; i++)
+        GameCardSO[] selectedCards = new GameCardSO[availableCardsShownToPlayer.Count / 2];
+        for (int i = 0; i < availableCardsShownToPlayer.Count / 2; i++)
         {
             //logic used
             // 1. check if current card we selected is not selected just before
@@ -174,23 +188,23 @@ public class GameManager : MonoBehaviour
         //4. If the availableCard element is already populated, just increase the value and use modulus operator
         //5. This ensures we won't get any error
         //6. then assign the card for both of those positions
-        for (int i = 0; i < availableCards.Count / 2; i++)
+        for (int i = 0; i < availableCardsShownToPlayer.Count / 2; i++)
         {
             for (int j = 0; j < 2; j++)
             {
-                int value = Random.Range(0, availableCards.Count - 1);
-                while (availableCards[value].cardID != -1)
-                    value = (value + 1) % availableCards.Count;
-                availableCards[value].InitializeCard(selectedGameCards[i].cardID, selectedGameCards[i].cardSprite);
+                int value = Random.Range(0, availableCardsShownToPlayer.Count - 1);
+                while (availableCardsShownToPlayer[value].cardID != -1)
+                    value = (value + 1) % availableCardsShownToPlayer.Count;
+                availableCardsShownToPlayer[value].InitializeCard(selectedGameCards[i].cardID, selectedGameCards[i].cardSprite);
             }
         }
     }
 
     void ResetAllCards()
     {
-        for (int i = 0; i < availableCards.Count; i++)
+        for (int i = 0; i < availableCardsShownToPlayer.Count; i++)
         {
-            availableCards[i].ResetCard();
+            availableCardsShownToPlayer[i].ResetCard();
         }
     }
 
@@ -254,7 +268,14 @@ public class GameManager : MonoBehaviour
 
         for (int i=0;i<cards.Length;i++)
         {
+            availableCardsShownToPlayer.Remove(cards[i]);
             cards[i].RemoveCard();
+        }
+
+        if (availableCardsShownToPlayer.Count == 0)
+        {
+            //game win
+            GameWonCB?.Invoke();
         }
     }
 
