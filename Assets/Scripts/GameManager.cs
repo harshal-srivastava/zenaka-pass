@@ -55,7 +55,13 @@ public class GameManager : MonoBehaviour
     public delegate void InitializeGameEvent();
     public static InitializeGameEvent InitializeGameCB;
 
+    public delegate void GameProgressLoadedEvent(int score, int combo, int matches, int turns);
+    public static GameProgressLoadedEvent GameProgressLoadedCB;
+
     private int combo = 0;
+
+    [SerializeField]
+    private GameSaveLoadManager gameSaveManager;
 
     // Start is called before the first frame update
     void Awake()
@@ -92,10 +98,10 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         //only for quick testing on grid creation and value assignment on runtime
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            SetCards();
-        }
+        //if (Input.GetKeyDown(KeyCode.Space))
+       // {
+        //    SetCards();
+       // }
     }
 
     void SetCards()
@@ -317,4 +323,78 @@ public class GameManager : MonoBehaviour
     {
         gameCardScriptableObjectArray = Resources.LoadAll<GameCardSO>("GameCards");
     }
+
+    public void SaveUserProgressAndQuit()
+    {
+        SaveUserProgress();
+        QuitApplication();
+    }
+
+    void QuitApplication()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
+
+    private void SaveUserProgress()
+    {
+        GameData data = new GameData();
+        data.score = GameScoreManager.Instance.PlayerScore;
+        data.combo = GameScoreManager.Instance.PlayerScoreCombo;
+        data.noOfMatches = GameScoreManager.Instance.PlayerNumberOfMatches;
+        data.noOfTurns = GameScoreManager.Instance.PlayerNumberOfTurns;
+        data.cardsSaved = new List<CardSaveData>();
+        for (int i=0;i<availableCardsShownToPlayer.Count;i++)
+        {
+            CardSaveData card = new CardSaveData();
+            card.cardId = availableCardsShownToPlayer[i].cardID;
+            card.cardSize = availableCardsShownToPlayer[i].GetComponent<RectTransform>().sizeDelta;
+            card.cardPosition = availableCardsShownToPlayer[i].GetComponent<RectTransform>().anchoredPosition;
+            data.cardsSaved.Add(card);
+        }
+
+        gameSaveManager.SaveGameData(data);
+    }
+
+    public void LoadUserProgress()
+    {
+        GameData loadedData = gameSaveManager.LoadGameData();
+        availableCardsShownToPlayer = new List<GameCard>();
+        combo = loadedData.combo;
+        for (int i=0;i<loadedData.cardsSaved.Count;i++)
+        {
+            GameCard card = GameObject.Instantiate(cardPrefab, cardHolderPanel).GetComponent<GameCard>();
+            for (int j=0;j<gameCardScriptableObjectArray.Length;j++)
+            {
+                if (gameCardScriptableObjectArray[j].cardID == loadedData.cardsSaved[i].cardId)
+                {
+                    card.InitializeCard(loadedData.cardsSaved[i].cardId, gameCardScriptableObjectArray[j].cardSprite);
+                }
+            }
+            card.GetComponent<RectTransform>().sizeDelta = new Vector2(loadedData.cardsSaved[i].cardSize.x, loadedData.cardsSaved[i].cardSize.y);
+            card.GetComponent<RectTransform>().anchoredPosition = new Vector2(loadedData.cardsSaved[i].cardPosition.x, loadedData.cardsSaved[i].cardPosition.y);
+            availableCardsShownToPlayer.Add(card);
+        }
+        GameProgressLoadedCB?.Invoke(loadedData.score, loadedData.combo, loadedData.noOfMatches, loadedData.noOfTurns);
+        Invoke("HideAllCards", gameStartCardShowingTime);
+    }
+}
+
+[System.Serializable]
+public class GameData
+{
+    public int score;
+    public int combo;
+    public int noOfMatches;
+    public int noOfTurns;
+    public List<CardSaveData> cardsSaved;
+}
+
+[System.Serializable]
+public class CardSaveData
+{
+    public int cardId;
+    public Vector2 cardSize;
+    public Vector2 cardPosition;
 }

@@ -54,4 +54,10 @@ public class GameUIManager : MonoBehaviour
         gameWonScreen.SetActive(false);
         gridScreen.SetActive(true);
     }
+
+    public void LoadGameButtonPressed()
+    {
+        mainGameHomeScren.SetActive(false);
+        gamePlayScreen.SetActive(true);
+    }
 }

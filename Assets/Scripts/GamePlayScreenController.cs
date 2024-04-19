@@ -18,11 +18,15 @@ public class GamePlayScreenController : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI numberOfTurnsText;
 
+    [SerializeField]
+    private GameObject quitGamePopUp;
+
     private void Awake()
     {
         GameScoreManager.PlayerScoreUpdatedCB += UpdatePlayerScoreUI;
         GameManager.PlayerTurnCompletedEventCB += UpdatePlayerTurnUI;
         GameManager.InitializeGameCB += DisplayDefaultScore;
+        GameManager.GameProgressLoadedCB += DisplayLoadedProgressData;
     }
 
     void UpdatePlayerScoreUI()
@@ -43,6 +47,29 @@ public class GamePlayScreenController : MonoBehaviour
         comboText.text = "1";
         numberOfMatchesText.text = "0";
         numberOfTurnsText.text = "0";
+    }
+
+    void DisplayLoadedProgressData(int score, int combo, int matches, int turns)
+    {
+        scoreText.text = score.ToString();
+        //only added to visually show the combo as 1, 0 might be confusing to the player
+        if (combo == 0)
+        {
+            combo++;
+        }
+        comboText.text = combo.ToString();
+        numberOfMatchesText.text = matches.ToString();
+        numberOfTurnsText.text = turns.ToString();
+    }
+
+    public void GamePlayScreenQuitGameButtonPressed()
+    {
+        quitGamePopUp.SetActive(true);
+    }
+
+    public void GamePlayQuitScreenCancelButtonPressed()
+    {
+        quitGamePopUp.SetActive(false);
     }
 
 

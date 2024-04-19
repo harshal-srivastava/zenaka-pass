@@ -26,6 +26,7 @@ public class GameScoreManager : MonoBehaviour
         GameManager.CardMatchCB += UpdatePlayerScore;
         GameManager.PlayerTurnCompletedEventCB += PlayerTurnCompleted;
         GameManager.InitializeGameCB += SetScoresToDefault;
+        GameManager.GameProgressLoadedCB += SetProgressLoadedScores;
     }
 
     public int PlayerScore { get; private set; }
@@ -58,5 +59,13 @@ public class GameScoreManager : MonoBehaviour
         PlayerScoreCombo = 0;
         PlayerNumberOfMatches = 0;
         PlayerNumberOfTurns = 0;
+    }
+
+    void SetProgressLoadedScores(int score, int combo, int matches, int turns)
+    {
+        PlayerScore = score;
+        PlayerScoreCombo = combo;
+        PlayerNumberOfMatches = matches;
+        PlayerNumberOfTurns = turns;
     }
 }
