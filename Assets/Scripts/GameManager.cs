@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Main game class, responsible for getting the card data from the scriptable objects
+/// Creating the grid, and populating with randomly selected card pairs from the scriptable objects data
+/// </summary>
 public class GameManager : MonoBehaviour
 {
+    //dictionary to store the card index and sprite from the scriptable object card data present
     private Dictionary<int, Sprite> gameCardStoredDictionary;
+
+    //represents the cards chosen for the player to play with
     private List<GameCard> availableCardsShownToPlayer;
 
-    [SerializeField]
     private int gridX;
-
-    [SerializeField]
     private int gridY;
 
     [SerializeField]
@@ -21,42 +25,60 @@ public class GameManager : MonoBehaviour
     private GameObject cardPrefab;
 
     private float cardHolderPanelSizeX;
-
     private float cardHolderPanelSizeY;
-
-    [SerializeField]
-    private float paddingX;
-
-    [SerializeField]
-    private float paddingY;
 
     [SerializeField]
     private float gameStartCardShowingTime;
 
     public static bool hasGameStarted { get; private set; }
 
+    //List to store the cards that user has clicked
     public List<GameCard> clickedCards;
 
+    //used to prevent user invalid clicks
     private int cardClickCount;
 
     public static int minGridX = 2;
     public static int minGridY = 2;
 
+    /// <summary>
+    /// delegate representing the game won state
+    /// </summary>
     public delegate void GameWonEvent();
     public static GameWonEvent GameWonCB;
 
+    /// <summary>
+    /// delegate representing the match of two cards
+    /// </summary>
+    /// <param name="combo"></param>
     public delegate void CardMatchEvent(int combo);
     public static CardMatchEvent CardMatchCB;
 
+    /// <summary>
+    /// delegate representing the mismatch of two cards
+    /// </summary>
     public delegate void CardMisMatchEvent(int combo);
     public static CardMisMatchEvent CardMisMatchCB;
 
+    /// <summary>
+    /// delegate representing user turn completed
+    /// </summary>
     public delegate void PlayerTurnCompletedEvent();
     public static PlayerTurnCompletedEvent PlayerTurnCompletedEventCB;
 
+    /// <summary>
+    /// delegate for game intialization
+    /// </summary>
     public delegate void InitializeGameEvent();
     public static InitializeGameEvent InitializeGameCB;
 
+    /// <summary>
+    /// delegate representing the gamedata loading complete
+    /// </summary>
+    /// <param name="score"></param>
+    /// <param name="combo"></param>
+    /// <param name="matches"></param>
+    /// <param name="turns"></param>
     public delegate void GameProgressLoadedEvent(int score, int combo, int matches, int turns);
     public static GameProgressLoadedEvent GameProgressLoadedCB;
 
@@ -65,55 +87,75 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private GameSaveLoadManager gameSaveManager;
 
-    // Start is called before the first frame update
+    
     void Awake()
+    {
+        SetGameInitVariables();
+    }
+
+    /// <summary>
+    /// Function to set the panel size
+    /// Load the card information from the scriptable objects
+    /// Attach game event listeners
+    /// </summary>
+    private void SetGameInitVariables()
     {
         SetCardPanelSizeVariables();
         LoadAllCardInformationData();
+        AttachGameEventListeners();
         hasGameStarted = false;
-        GameCard.cardClickedCB += GameCardClicked;
-        GridSelectionScereen.updateGameGridCB += UpdateGameGrid;
-        GridSelectionScereen.gameStartCB += StartGame;
         cardClickCount = 0;
     }
 
-    void StartGame()
+    /// <summary>
+    /// Callback function to start the game
+    /// </summary>
+    private void StartGame()
     {
         combo = 0;
         InitializeGameCB?.Invoke();
         SetCards();
     }
 
-    void UpdateGameGrid(int x, int y)
+    /// <summary>
+    /// Calllback function to set the grid size variables
+    /// Will be used to create the grid
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    private void UpdateGameGrid(int x, int y)
     {
         gridX = x;
         gridY = y;
     }
 
-    void SetCardPanelSizeVariables()
+    /// <summary>
+    /// Function to get the card holder UI panel size
+    /// </summary>
+    private void SetCardPanelSizeVariables()
     {
         cardHolderPanelSizeX = cardHolderPanel.sizeDelta.x;
-        cardHolderPanelSizeY = cardHolderPanel.sizeDelta.y;
-        
+        cardHolderPanelSizeY = cardHolderPanel.sizeDelta.y;   
     }
 
-    private void Update()
-    {
-        //only for quick testing on grid creation and value assignment on runtime
-        //if (Input.GetKeyDown(KeyCode.Space))
-       // {
-        //    SetCards();
-       // }
-    }
-
-    void SetCards()
+    /// <summary>
+    /// Function to start the game
+    /// create the grid
+    /// populate the grid with game cards
+    /// </summary>
+    private void SetCards()
     {
         SetCardGrid();
         SetCardDetails();
         Invoke("HideAllCards", gameStartCardShowingTime);
     }
 
-    void HideAllCards()
+    /// <summary>
+    /// Function to hide all cards
+    /// This is part of game mechanism, at start, it will show all cards to user for 2 seconds
+    /// then hide them
+    /// </summary>
+    private void HideAllCards()
     {
         for (int i=0;i<availableCardsShownToPlayer.Count;i++)
         {
@@ -122,9 +164,13 @@ public class GameManager : MonoBehaviour
         hasGameStarted = true;
     }
 
-
-    void SetCardGrid()
+    #region GRID CREATION MECHANISM
+    /// <summary>
+    /// Function to create the card grid
+    /// </summary>
+    private void SetCardGrid()
     {
+        //clear the current grid, for game restart purposes
         ClearCurrentCardGrid();
 
         //get increment value, to add to x and y for grid
@@ -162,21 +208,40 @@ public class GameManager : MonoBehaviour
             currY -= incrementY;
         }
     }
-
-    void SetCardDetails()
+    void ClearCurrentCardGrid()
     {
+        foreach (Transform child in cardHolderPanel.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+    }
+    #endregion
+
+    #region CARD VALUES SETTING MECHANISM
+
+    /// <summary>
+    /// Function to populate the cards received with random pairs of IDs and images obtained 
+    /// in the gameCardStoredDictionary dictionary
+    /// </summary>
+    private void SetCardDetails()
+    {
+        //reset all cards first, for restart purposes
         ResetAllCards();
 
-        //get randomly selected cards to play from gameCardScriptableObjectArray
-        //this array is basically storehouse of all the available cards, which can be created via menu in unity
+        //get randomly selected cards ids to play from gameCardStoredDictionary
+        //this dictionary is basically storehouse of all the available cards, which can be created via menu in unity
         int[] selectedCardsID = GetRandomGameCardsID();
 
         //using the above gotten cards, fill the availableCards list objects with ID and sprites
         SetGameCardValuesFromSelectedCards(selectedCardsID);
     }
 
-
-    int[] GetRandomGameCardsID()
+    /// <summary>
+    /// Function to return the array of IDs from the gameCardStoredDictionary
+    /// Chosen on a random basis
+    /// </summary>
+    /// <returns></returns>
+    private int[] GetRandomGameCardsID()
     {
         //we only need half the cards as other half will have same value to form pairs
         int[] selectedCardsID = new int[availableCardsShownToPlayer.Count / 2];
@@ -201,7 +266,11 @@ public class GameManager : MonoBehaviour
         return selectedCardsID;
     }
 
-    void SetGameCardValuesFromSelectedCards(int[] selectedGameCardsID)
+    /// <summary>
+    /// Function to set the pairs of sprites based on the ID array received
+    /// </summary>
+    /// <param name="selectedGameCardsID"></param>
+    private void SetGameCardValuesFromSelectedCards(int[] selectedGameCardsID)
     {
 
         //logic
@@ -223,47 +292,66 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void ResetAllCards()
+    /// <summary>
+    /// Function to set the cards to their original values
+    /// </summary>
+    private void ResetAllCards()
     {
         for (int i = 0; i < availableCardsShownToPlayer.Count; i++)
         {
             availableCardsShownToPlayer[i].ResetCard();
         }
     }
+    #endregion
 
-    void ClearCurrentCardGrid()
-    {
-        foreach (Transform child in cardHolderPanel.transform)
-        {
-            GameObject.Destroy(child.gameObject);
-        }
-    }
+    #region GAMEPLAY AND CARD MATCHING MECHANISM
 
-    void GameCardClicked(GameCard card)
+    /// <summary>
+    /// Callback function for registering the user click
+    /// </summary>
+    /// <param name="card"></param>
+    private void GameCardClicked(GameCard card)
     {
         clickedCards.Add(card);
         StartCoroutine(ProcessClickedCardsListForMatch());
     }
 
-    IEnumerator ProcessClickedCardsListForMatch()
+    /// <summary>
+    /// Function to process the cards that the user has clicked
+    /// Update number of turns if user has clicked 2 cards
+    /// check two cards to see if they are a match or not
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator ProcessClickedCardsListForMatch()
     {
         cardClickCount += 1;
+        //add to prevent invalid user clicks
         if (cardClickCount != 2)
         {
             yield break;
         }
+        //no need for any processing if user has clicked just one card
         if (clickedCards.Count < 2)
         {
             yield break;
         }
+        //if code reaches here, then it means it is a legitimate turn
+        //hence make the event call to update the number of turns
         PlayerTurnCompletedEventCB?.Invoke();
+
+        //take last two cards in the clickedCard list
+        //these two will be used for comparing
         GameCard lastCard = clickedCards[clickedCards.Count - 1];
         GameCard secondLastCard = clickedCards[clickedCards.Count - 2];
+
+        //added extra condition to avoid null reference errors
         if (lastCard == null || secondLastCard == null)
         {
             yield break;
         }
         //cards match
+        //if cards match, play the match successfull sound
+        //remove the two cards from the list
         if (lastCard.cardID == secondLastCard.cardID)
         {
             GameAudioManager.Instance.PlayCardMatchSuccessSound();
@@ -271,6 +359,8 @@ public class GameManager : MonoBehaviour
             clickedCards.RemoveRange(clickedCards.Count - 2, 2);
             combo += 1;
             CardMatchCB?.Invoke(combo);
+            //wait for 0.5 seconds so that player can see which cards matched
+            //then start removing them
             yield return new WaitForSeconds(0.5f);
             HandleCardsMatchSuccess(new GameCard[] {lastCard, secondLastCard }); 
         }
@@ -280,31 +370,46 @@ public class GameManager : MonoBehaviour
             GameAudioManager.Instance.PlayCardMatchFailSound();
             ResetCardClickCount();
             combo = 0;
+            //calling this event to reset the user combo
             CardMisMatchCB?.Invoke(combo);
+            //wait for 0.5 seconds so that player can see what card they clicked
+            //then start flipping it back
             yield return new WaitForSeconds(0.5f);
             HandleCardMatchFail(new GameCard[] { lastCard, secondLastCard }); 
         }
     }
 
-    void ResetCardClickCount()
+    /// <summary>
+    /// Function to restart click count
+    /// This needs to be reset everytime its value becomes 2
+    /// </summary>
+    private void ResetCardClickCount()
     {
         cardClickCount = 0;
     }
 
-    void HandleCardsMatchSuccess(GameCard[] cards)
+    /// <summary>
+    /// Remove the cards matched from the availableCardsShownToPlayer list
+    /// Then check for game over
+    /// </summary>
+    /// <param name="cards"></param>
+    private void HandleCardsMatchSuccess(GameCard[] cards)
     {
-
         for (int i=0;i<cards.Length;i++)
         {
             availableCardsShownToPlayer.Remove(cards[i]);
             cards[i].RemoveCard();
         }
-        CheckForGameOver();
-        
+        CheckForGameOver();  
     }
 
-    void CheckForGameOver()
+    /// <summary>
+    /// Function to check if player won the game
+    /// </summary>
+    private void CheckForGameOver()
     {
+        //if there are no cards left in availableCardsShownToPlayer list
+        //it means all cards have been matched and game won
         if (availableCardsShownToPlayer.Count == 0)
         {
             //game win
@@ -313,42 +418,50 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void HandleCardMatchFail(GameCard[] cards)
+    /// <summary>
+    /// Function to reset the card or flip them back if they don't match
+    /// </summary>
+    /// <param name="cards"></param>
+    private void HandleCardMatchFail(GameCard[] cards)
     {
         for (int i=0;i<cards.Length;i++)
         {
             cards[i].FlipCard();
         }
     }
+    #endregion
+
+    #region USER PROGRESS SAVING AND LOADING MECHANISM
 
     /// <summary>
-    /// Function to load all the available card information from the card scriptable objects
+    /// Function called when user presses Save and Quit button
     /// </summary>
-    void LoadAllCardInformationData()
-    {
-        GameCardSO[] gameCardScriptableObjectArray = Resources.LoadAll<GameCardSO>("GameCards");
-        gameCardStoredDictionary = new Dictionary<int, Sprite>();
-        for (int i=0;i<gameCardScriptableObjectArray.Length;i++)
-        {
-            gameCardStoredDictionary.Add(gameCardScriptableObjectArray[i].cardID, gameCardScriptableObjectArray[i].cardSprite);
-        }
-    }
-
     public void SaveUserProgressAndQuit()
     {
         SaveUserProgress();
         QuitApplication();
     }
 
-    void QuitApplication()
+    /// <summary>
+    /// Function to quit the application or exit from playmode if in unity
+    /// </summary>
+    private void QuitApplication()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
+        Application.Quit();
     }
 
+
+    /// <summary>
+    /// Function to convert the user progress into an object of GameData class
+    /// And save that as json string file
+    /// </summary>
     private void SaveUserProgress()
     {
+        //take the game scores, cards and their current state
+        //store them in object of GameData class
         GameData data = new GameData();
         data.score = GameScoreManager.Instance.PlayerScore;
         data.combo = GameScoreManager.Instance.PlayerScoreCombo;
@@ -364,16 +477,22 @@ public class GameManager : MonoBehaviour
             data.cardsSaved.Add(card);
         }
 
-        gameSaveManager.ReadGameData(data);
+        //make the function call to convert it into json and write to a text file
+        gameSaveManager.SaveGameData(data);
     }
 
+    /// <summary>
+    /// Function to load the user progress
+    /// </summary>
     public void LoadUserProgress()
     {
         GameData loadedData = gameSaveManager.LoadGameData();
+        //added to prevent null reference errors
         if (loadedData == null)
         {
             return;
         }
+        //get the deserialized GameData object from the json file and populate the cards with that data
         availableCardsShownToPlayer = new List<GameCard>();
         combo = loadedData.combo;
         for (int i=0;i<loadedData.cardsSaved.Count;i++)
@@ -387,8 +506,58 @@ public class GameManager : MonoBehaviour
         GameProgressLoadedCB?.Invoke(loadedData.score, loadedData.combo, loadedData.noOfMatches, loadedData.noOfTurns);
         Invoke("HideAllCards", gameStartCardShowingTime);
     }
+    #endregion
+
+    /// <summary>
+    /// Function to load all the available card information from the card scriptable objects
+    /// Load all cards scriptable objects from Resources folder
+    /// Then populate the dictionary with ID as key and sprite as value
+    /// </summary>
+    private void LoadAllCardInformationData()
+    {
+        GameCardSO[] gameCardScriptableObjectArray = Resources.LoadAll<GameCardSO>("GameCards");
+        gameCardStoredDictionary = new Dictionary<int, Sprite>();
+        for (int i = 0; i < gameCardScriptableObjectArray.Length; i++)
+        {
+            gameCardStoredDictionary.Add(gameCardScriptableObjectArray[i].cardID, gameCardScriptableObjectArray[i].cardSprite);
+        }
+    }
+
+    /// <summary>
+    /// Function to attach game event listeners
+    /// Helps in decoupling the referencing to multiple classes
+    /// </summary>
+    private void AttachGameEventListeners()
+    {
+        GameCard.CardClickedCB += GameCardClicked;
+        GridSelectionScereen.updateGameGridCB += UpdateGameGrid;
+        GridSelectionScereen.gameStartCB += StartGame;
+    }
+
+    /// <summary>
+    /// Function to detach listeners to respective class game events
+    /// This is done as a safe keeping in future if a scene reload is required
+    /// Static events couple with delegates don't work so well on scene reloads
+    /// So detach them if object is destroyed and it will be attached again when instance of class is created
+    /// </summary>
+    private void DetachGameEventListeners()
+    {
+        GameCard.CardClickedCB -= GameCardClicked;
+        GridSelectionScereen.updateGameGridCB -= UpdateGameGrid;
+        GridSelectionScereen.gameStartCB -= StartGame;
+    }
+
+    private void OnDestroy()
+    {
+        DetachGameEventListeners();
+    }
 }
 
+/// <summary>
+/// Serializable class to represent user progress data
+/// data will contain user score, combo, turns and matches
+/// will contain array of the cards remaining when the game was saved
+/// </summary>
 [System.Serializable]
 public class GameData
 {
@@ -399,6 +568,11 @@ public class GameData
     public List<CardSaveData> cardsSaved;
 }
 
+/// <summary>
+/// Serializable class representing information about the card
+/// Here we only need ID because we can fetch the sprite from the gameCardStoredDictionary
+/// Need to store the card size and location so as to simulate the exact state the user saved their progress
+/// </summary>
 [System.Serializable]
 public class CardSaveData
 {
