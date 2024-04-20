@@ -27,6 +27,7 @@ public class GameScoreManager : MonoBehaviour
         GameManager.PlayerTurnCompletedEventCB += PlayerTurnCompleted;
         GameManager.InitializeGameCB += SetScoresToDefault;
         GameManager.GameProgressLoadedCB += SetProgressLoadedScores;
+        GameManager.CardMisMatchCB += HandleCardMisMatch;
     }
 
     public int PlayerScore { get; private set; }
@@ -45,6 +46,12 @@ public class GameScoreManager : MonoBehaviour
         PlayerScoreCombo = combo;
         PlayerScore += (PERMATCHSCOREAWARDED * PlayerScoreCombo);
         PlayerNumberOfMatches += 1;
+        PlayerScoreUpdatedCB?.Invoke();
+    }
+
+    private void HandleCardMisMatch(int combo)
+    {
+        PlayerScoreCombo = combo;
         PlayerScoreUpdatedCB?.Invoke();
     }
 

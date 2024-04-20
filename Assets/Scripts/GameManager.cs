@@ -5,8 +5,7 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField]
-    private GameCardSO[] gameCardScriptableObjectArray;
+    private Dictionary<int, Sprite> gameCardStoredDictionary;
     private List<GameCard> availableCardsShownToPlayer;
 
     [SerializeField]
@@ -48,6 +47,9 @@ public class GameManager : MonoBehaviour
 
     public delegate void CardMatchEvent(int combo);
     public static CardMatchEvent CardMatchCB;
+
+    public delegate void CardMisMatchEvent(int combo);
+    public static CardMisMatchEvent CardMisMatchCB;
 
     public delegate void PlayerTurnCompletedEvent();
     public static PlayerTurnCompletedEvent PlayerTurnCompletedEventCB;
@@ -167,37 +169,39 @@ public class GameManager : MonoBehaviour
 
         //get randomly selected cards to play from gameCardScriptableObjectArray
         //this array is basically storehouse of all the available cards, which can be created via menu in unity
-        GameCardSO[] selectedCards = GetRandomGameCards();
+        int[] selectedCardsID = GetRandomGameCardsID();
 
         //using the above gotten cards, fill the availableCards list objects with ID and sprites
-        SetGameCardValuesFromSelectedCards(selectedCards);
+        SetGameCardValuesFromSelectedCards(selectedCardsID);
     }
 
 
-    GameCardSO[] GetRandomGameCards()
+    int[] GetRandomGameCardsID()
     {
         //we only need half the cards as other half will have same value to form pairs
-        GameCardSO[] selectedCards = new GameCardSO[availableCardsShownToPlayer.Count / 2];
+        int[] selectedCardsID = new int[availableCardsShownToPlayer.Count / 2];
+        List<int> gameCardStordDicKeys = new List<int>(gameCardStoredDictionary.Keys);
         for (int i = 0; i < availableCardsShownToPlayer.Count / 2; i++)
         {
             //logic used
             // 1. check if current card we selected is not selected just before
             // 2. if so, increase the value index (the random number generated)
             // 3. use modulus operator to make sure we don't get error if value becomes larger than information array length
-            int value = Random.Range(0, gameCardScriptableObjectArray.Length - 1);
+            int value = Random.Range(0, gameCardStoredDictionary.Count - 1);
+           
             for (int j = i; j > 0; j--)
             {
-                if (selectedCards[j - 1].cardID == gameCardScriptableObjectArray[value].cardID)
+                if (selectedCardsID[j - 1] == gameCardStordDicKeys[value]) ;
                 {
-                    value = (value + 1) % gameCardScriptableObjectArray.Length;
+                    value = (value + 1) % gameCardStoredDictionary.Count;
                 }
             }
-            selectedCards[i] = gameCardScriptableObjectArray[value];
+            selectedCardsID[i] = gameCardStordDicKeys[value];
         }
-        return selectedCards;
+        return selectedCardsID;
     }
 
-    void SetGameCardValuesFromSelectedCards(GameCardSO[] selectedGameCards)
+    void SetGameCardValuesFromSelectedCards(int[] selectedGameCardsID)
     {
 
         //logic
@@ -214,7 +218,7 @@ public class GameManager : MonoBehaviour
                 int value = Random.Range(0, availableCardsShownToPlayer.Count - 1);
                 while (availableCardsShownToPlayer[value].cardID != -1)
                     value = (value + 1) % availableCardsShownToPlayer.Count;
-                availableCardsShownToPlayer[value].InitializeCard(selectedGameCards[i].cardID, selectedGameCards[i].cardSprite);
+                availableCardsShownToPlayer[value].InitializeCard(selectedGameCardsID[i],gameCardStoredDictionary.GetValueOrDefault(selectedGameCardsID[i]));
             }
         }
     }
@@ -276,6 +280,7 @@ public class GameManager : MonoBehaviour
             GameAudioManager.Instance.PlayCardMatchFailSound();
             ResetCardClickCount();
             combo = 0;
+            CardMisMatchCB?.Invoke(combo);
             yield return new WaitForSeconds(0.5f);
             HandleCardMatchFail(new GameCard[] { lastCard, secondLastCard }); 
         }
@@ -321,7 +326,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     void LoadAllCardInformationData()
     {
-        gameCardScriptableObjectArray = Resources.LoadAll<GameCardSO>("GameCards");
+        GameCardSO[] gameCardScriptableObjectArray = Resources.LoadAll<GameCardSO>("GameCards");
+        gameCardStoredDictionary = new Dictionary<int, Sprite>();
+        for (int i=0;i<gameCardScriptableObjectArray.Length;i++)
+        {
+            gameCardStoredDictionary.Add(gameCardScriptableObjectArray[i].cardID, gameCardScriptableObjectArray[i].cardSprite);
+        }
     }
 
     public void SaveUserProgressAndQuit()
@@ -369,13 +379,7 @@ public class GameManager : MonoBehaviour
         for (int i=0;i<loadedData.cardsSaved.Count;i++)
         {
             GameCard card = GameObject.Instantiate(cardPrefab, cardHolderPanel).GetComponent<GameCard>();
-            for (int j=0;j<gameCardScriptableObjectArray.Length;j++)
-            {
-                if (gameCardScriptableObjectArray[j].cardID == loadedData.cardsSaved[i].cardId)
-                {
-                    card.InitializeCard(loadedData.cardsSaved[i].cardId, gameCardScriptableObjectArray[j].cardSprite);
-                }
-            }
+            card.InitializeCard(loadedData.cardsSaved[i].cardId, gameCardStoredDictionary.GetValueOrDefault(loadedData.cardsSaved[i].cardId));
             card.GetComponent<RectTransform>().sizeDelta = new Vector2(loadedData.cardsSaved[i].cardSize.x, loadedData.cardsSaved[i].cardSize.y);
             card.GetComponent<RectTransform>().anchoredPosition = new Vector2(loadedData.cardsSaved[i].cardPosition.x, loadedData.cardsSaved[i].cardPosition.y);
             availableCardsShownToPlayer.Add(card);

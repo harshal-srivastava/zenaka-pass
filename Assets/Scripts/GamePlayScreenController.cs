@@ -32,7 +32,7 @@ public class GamePlayScreenController : MonoBehaviour
     void UpdatePlayerScoreUI()
     {
         scoreText.text = GameScoreManager.Instance.PlayerScore.ToString();
-        comboText.text = GameScoreManager.Instance.PlayerScoreCombo.ToString();
+        comboText.text = (GameScoreManager.Instance.PlayerScoreCombo>0?GameScoreManager.Instance.PlayerScoreCombo : 1).ToString();
         numberOfMatchesText.text = GameScoreManager.Instance.PlayerNumberOfMatches.ToString();
     }
 
