@@ -354,12 +354,16 @@ public class GameManager : MonoBehaviour
             data.cardsSaved.Add(card);
         }
 
-        gameSaveManager.SaveGameData(data);
+        gameSaveManager.ReadGameData(data);
     }
 
     public void LoadUserProgress()
     {
         GameData loadedData = gameSaveManager.LoadGameData();
+        if (loadedData == null)
+        {
+            return;
+        }
         availableCardsShownToPlayer = new List<GameCard>();
         combo = loadedData.combo;
         for (int i=0;i<loadedData.cardsSaved.Count;i++)

@@ -17,10 +17,14 @@ public class GameUIManager : MonoBehaviour
     [SerializeField]
     private GameObject gridScreen;
 
+    [SerializeField]
+    private GameObject gameDataLoadingFailedPopup;
+
     private void Awake()
     {
         GridSelectionScereen.gameStartCB += StartGame;
         GameManager.GameWonCB += ShowGameWonScreen;
+        GameSaveLoadManager.GameSaveDataLoadFailedCB += GameDataLoadingFailed;
     }
 
     public void QuitGame()
@@ -34,6 +38,10 @@ public class GameUIManager : MonoBehaviour
     public void HomeScreenPlayButtonPressed()
     {
         mainGameHomeScren.SetActive(false);
+        if (gameDataLoadingFailedPopup.activeSelf)
+        {
+            gameDataLoadingFailedPopup.SetActive(false);
+        }
         gridScreen.SetActive(true);
     }
 
@@ -59,5 +67,17 @@ public class GameUIManager : MonoBehaviour
     {
         mainGameHomeScren.SetActive(false);
         gamePlayScreen.SetActive(true);
+    }
+
+    void GameDataLoadingFailed()
+    {
+        gamePlayScreen.SetActive(false);
+        mainGameHomeScren.SetActive(true);
+        gameDataLoadingFailedPopup.SetActive(true);
+    }
+
+    public void GameLoadFailedPopUpCloseButtonPressed()
+    {
+        gameDataLoadingFailedPopup.SetActive(false);
     }
 }

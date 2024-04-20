@@ -7,6 +7,9 @@ public class GameSaveLoadManager : MonoBehaviour
 {
     private string saveFilePath;
 
+    public delegate void GameLoadFailedEvent();
+    public static GameLoadFailedEvent GameSaveDataLoadFailedCB;
+
     private void Start()
     {
         saveFilePath = Path.Combine(Application.persistentDataPath, "saveData.json");
@@ -17,7 +20,7 @@ public class GameSaveLoadManager : MonoBehaviour
         }
     }
 
-    public void SaveGameData(GameData data)
+    public void ReadGameData(GameData data)
     {
         string jsonData = JsonUtility.ToJson(data);
 
@@ -35,6 +38,26 @@ public class GameSaveLoadManager : MonoBehaviour
 
     public GameData LoadGameData()
     {
+        GameData data = new GameData();
+        try
+        {
+            data = LoadData();
+        }
+        catch(FileNotFoundException ex)
+        {
+            Debug.LogError("Could not find saved data " + ex.Message);
+            GameSaveDataLoadFailedCB?.Invoke();
+            return null;
+        }
+        finally
+        {
+            Debug.LogError("loading save data failed");
+        }
+        return data;
+    }
+
+    GameData LoadData()
+    {
         if (File.Exists(saveFilePath))
         {
             string jsonData = File.ReadAllText(saveFilePath);
@@ -42,8 +65,8 @@ public class GameSaveLoadManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Save file not found.");
-            return null;
+            Debug.Log("Save file not found.");
+            throw new FileNotFoundException("Saved file not found");
         }
     }
 }
